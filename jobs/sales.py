@@ -16,3 +16,26 @@ logger = logging.getLogger("py4j")
 
 sys.path.insert(1, project_dir)
 from classes import class_pyspark
+
+
+def main(project_dir: str) -> None:
+    """Starts a Spark job"""
+
+    config = open_file(f"{project_dir}/json/sales.json")
+    spark_start(config=config)
+
+
+def open_file(file_path: str) -> dict:
+    if isinstance(file_path, str) and os.path.exists(file_path):
+        with open(file_path, "r") as file:
+            data = json.load(file)
+        return data
+
+
+def spark_start(config: dict) -> SparkSession:
+    if isinstance(config, dict):
+        class_pyspark.SparkClass(conf={}).spark_start(config)
+
+
+if __name__ == "__main__":
+    main(project_dir)
