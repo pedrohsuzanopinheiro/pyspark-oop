@@ -18,7 +18,31 @@ class SparkClass:
         app_name = kwargs["spark_conf"]["app_name"]
         log_level = kwargs["log"]["level"]
 
-        spark = (
-            SparkSession.builder.appName(app_name).master(master).getOrCreate()
-        )
-        return spark
+        def create_session(
+            master: Optional[str] = "local[*]",
+            app_name: Optional[str] = "my_app",
+        ) -> SparkSession:
+            spark = (
+                SparkSession.builder.appName(app_name)
+                .master(master)
+                .getOrCreate()
+            )
+            return spark
+
+        def set_logging(
+            spark_session: SparkSession, log_level: Optional[str] = None
+        ) -> None:
+            spark_session.sparkContext.setLogLevel(log_level) if isinstance(
+                log_level, str
+            ) else None
+
+        def get_settings(spark_session: SparkSession) -> None:
+            """Show Spark settings"""
+            print(
+                f"\033[1;33m{spark_session.sparkContext.getConf().getAll()}\033[0m"
+            )
+
+        spark_session = create_session(master, app_name)
+        set_logging(spark_session, log_level)
+        get_settings(spark_session)
+        return spark_session

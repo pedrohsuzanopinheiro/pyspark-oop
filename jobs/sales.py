@@ -22,7 +22,8 @@ def main(project_dir: str) -> None:
     """Starts a Spark job"""
 
     config = open_file(f"{project_dir}/json/sales.json")
-    spark_start(config=config)
+    spark_session = spark_start(config=config)
+    spark_stop(spark_session)
 
 
 def open_file(file_path: str) -> dict:
@@ -35,6 +36,10 @@ def open_file(file_path: str) -> dict:
 def spark_start(config: dict) -> SparkSession:
     if isinstance(config, dict):
         class_pyspark.SparkClass(conf={}).spark_start(config)
+
+
+def spark_stop(spark: SparkSession) -> None:
+    spark.stop() if isinstance(spark, SparkSession) else None
 
 
 if __name__ == "__main__":
