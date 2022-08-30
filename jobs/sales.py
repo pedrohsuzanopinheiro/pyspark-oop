@@ -23,6 +23,13 @@ def main(project_dir: str) -> None:
 
     conf = open_file(f"{project_dir}/json/sales.json")
     spark_session = spark_start(conf=conf)
+
+    transactions_df = import_data(
+        spark_session, f"{project_dir}/test-data/sales", ".csv$"
+    )
+    # customers_df = import_data(
+    #     spark_session, f"{project_dir}/test-data/sales/customers.csv"
+    # )
     spark_stop(spark_session)
 
 
@@ -35,11 +42,20 @@ def open_file(file_path: str) -> dict:
 
 def spark_start(conf: dict) -> SparkSession:
     if isinstance(conf, dict):
-        class_pyspark.SparkClass(config={}).spark_start(conf)
+        return class_pyspark.SparkClass(config={}).spark_start(conf)
 
 
 def spark_stop(spark: SparkSession) -> None:
     spark.stop() if isinstance(spark, SparkSession) else None
+
+
+def import_data(
+    spark: SparkSession, data_path: str, pattern: Optional[str] = None
+) -> DataFrame:
+    if isinstance(spark, SparkSession):
+        return class_pyspark.SparkClass(config={}).import_data(
+            spark, data_path, pattern
+        )
 
 
 if __name__ == "__main__":

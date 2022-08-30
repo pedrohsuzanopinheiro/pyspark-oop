@@ -44,5 +44,67 @@ class SparkClass:
 
         spark_session = create_session(master, app_name)
         set_logging(spark_session, log_level)
-        get_settings(spark_session)
+        # get_settings(spark_session)
         return spark_session
+
+    def import_data(
+        self,
+        spark: SparkSession,
+        data_path: str,
+        pattern: Optional[str] = None,
+    ) -> DataFrame:
+        def file_or_directory(data_path: str) -> str:
+            if isinstance(data_path, str) and os.path.exists(data_path):
+                if os.path.isdir(data_path):
+                    return "dir"
+                elif os.path.isfile(data_path):
+                    return "file"
+
+        def open_directory(data_path: str, pattern: Optional[str] = None):
+            if isinstance(data_path, str) and os.path.exists(data_path):
+                new_list = SparkClass(self.config).list_directory(
+                    data_path, pattern
+                )
+                print(new_list)
+
+        def open_file(data_path: str):
+            if isinstance(data_path, str) and os.path.exists(data_path):
+                pass
+
+        path_type = file_or_directory(data_path)
+        open_directory(data_path, pattern) if path_type == "dir" else None
+
+    def list_directory(
+        self, directory: str, pattern: Optional[str] = None
+    ) -> list:
+        """Recursevely list the files of a directory"""
+
+        def recursive_file_list(directory: str) -> list:
+            if os.path.exists(directory):
+                file_list = []
+                for dir_path, dir_name, filenames in os.walk(directory):
+                    for filename in filenames:
+                        file_list.append(f"{dir_path}/{filename}")
+                return file_list
+
+        def filter_files(file_list: list, pattern: str):
+            """If pattern is included then filter files"""
+            return [x for x in file_list if re.search(rf"{pattern}", x)]
+
+        file_list = recursive_file_list(directory)
+        return (
+            file_list
+            if pattern == None
+            else filter_files(file_list, pattern)
+            if pattern != ""
+            else None
+        )
+
+    def create_dataframe(
+        self, spark: SparkSession, file_list: list, file_type: str
+    ) -> DataFrame:
+        def df_from_csv(file_list: list) -> DataFrame:
+            pass
+
+        def df_from_json(file_list: list) -> DataFrame:
+            pass
