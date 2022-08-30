@@ -9,8 +9,8 @@ from pyspark.sql.dataframe import DataFrame
 
 
 class SparkClass:
-    def __init__(self, conf: dict) -> None:
-        self.config = conf
+    def __init__(self, config: dict) -> None:
+        self.config = config
 
     def spark_start(self, kwargs: dict) -> SparkSession:
         """Crates a Spark Session"""
