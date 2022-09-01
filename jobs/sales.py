@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 from pyspark.sql import SparkSession
 from pyspark.sql.dataframe import DataFrame
+from pyspark.sql.functions import col, explode
 
 project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_FILE = f"{project_dir}/logs/job-{os.path.basename(__file__)}.log"
@@ -25,11 +26,16 @@ def main(project_dir: str) -> None:
     spark_session = spark_start(conf=conf)
 
     transactions_df = import_data(
-        spark_session, f"{project_dir}/test-data/sales", ".csv$"
+        spark_session, f"{project_dir}/test-data/sales/transactions", ".json$"
     )
-    # customers_df = import_data(
-    #     spark_session, f"{project_dir}/test-data/sales/customers.csv"
-    # )
+    customers_df = import_data(
+        spark_session, f"{project_dir}/test-data/sales/customers.csv"
+    )
+    products_df = import_data(
+        spark_session, f"{project_dir}/test-data/sales/products.csv"
+    )
+    transform_data(spark_session, transactions_df, customers_df, products_df)
+
     spark_stop(spark_session)
 
 
@@ -56,6 +62,49 @@ def import_data(
         return class_pyspark.SparkClass(config={}).import_data(
             spark, data_path, pattern
         )
+
+
+def show_my_schema(df: DataFrame) -> None:
+    if isinstance(df, DataFrame):
+        df.show()
+        df.printSchema()
+        print(f"Total rows: {df.count()}")
+
+
+def transform_data(
+    spark: SparkSession,
+    transactions_df: DataFrame,
+    customers_df: DataFrame,
+    products_df: DataFrame,
+) -> DataFrame:
+    def clean_transactions(df: DataFrame) -> DataFrame:
+        if isinstance(df, DataFrame):
+            df1 = df.withColumn("basket_explode", explode(col("basket"))).drop(
+                "basket"
+            )
+            df2 = (
+                df1.select(
+                    col("customer_id"),
+                    col("date_of_purchase"),
+                    col("basket_explode.*"),
+                )
+                .withColumn(
+                    "date_of_purchase_formated",
+                    col("date_of_purchase").cast("Date"),
+                )
+                .withColumn("price", col("price").cast("Integer"))
+            )
+            return df2
+
+    def clean_customers(df: DataFrame) -> DataFrame:
+        if isinstance(df, DataFrame):
+            df1 = df.withColumn(
+                "loyalty_score", col("loyalty_score").cast("Integer")
+            )
+            return df1
+
+    clean_transactions(transactions_df)
+    clean_customers(customers_df)
 
 
 if __name__ == "__main__":
