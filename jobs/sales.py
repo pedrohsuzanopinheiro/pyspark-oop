@@ -22,7 +22,7 @@ from classes import class_pyspark
 def main(project_dir: str) -> None:
     """Starts a Spark job"""
 
-    conf = open_file(f"{project_dir}/json/sales.json")
+    conf = open_config(f"{project_dir}/json/sales.json")
     spark_session = spark_start(conf=conf)
 
     transactions_df = import_data(
@@ -39,11 +39,9 @@ def main(project_dir: str) -> None:
     spark_stop(spark_session)
 
 
-def open_file(file_path: str) -> dict:
+def open_config(file_path: str) -> dict:
     if isinstance(file_path, str) and os.path.exists(file_path):
-        with open(file_path, "r") as file:
-            data = json.load(file)
-        return data
+        return class_pyspark.SparkClass(config={}).open_json(file_path)
 
 
 def spark_start(conf: dict) -> SparkSession:
@@ -64,11 +62,9 @@ def import_data(
         )
 
 
-def show_my_schema(df: DataFrame) -> None:
-    if isinstance(df, DataFrame):
-        df.show()
-        df.printSchema()
-        print(f"Total rows: {df.count()}")
+def show_my_schema(df: DataFrame, filename: str) -> None:
+    if isinstance(df, DataFrame) and isinstance(filename, str):
+        class_pyspark.SparkClass(config={}).debug_dataframe(df, filename)
 
 
 def transform_data(
@@ -77,34 +73,38 @@ def transform_data(
     customers_df: DataFrame,
     products_df: DataFrame,
 ) -> DataFrame:
-    def clean_transactions(df: DataFrame) -> DataFrame:
-        if isinstance(df, DataFrame):
-            df1 = df.withColumn("basket_explode", explode(col("basket"))).drop(
-                "basket"
-            )
-            df2 = (
-                df1.select(
-                    col("customer_id"),
-                    col("date_of_purchase"),
-                    col("basket_explode.*"),
-                )
-                .withColumn(
-                    "date_of_purchase_formated",
-                    col("date_of_purchase").cast("Date"),
-                )
-                .withColumn("price", col("price").cast("Integer"))
-            )
-            return df2
+    tdf = clean_transactions(transactions_df)
+    cdf = clean_customers(customers_df)
+    show_my_schema(tdf, "tdf.output")
+    show_my_schema(cdf, "cdf.output")
 
-    def clean_customers(df: DataFrame) -> DataFrame:
-        if isinstance(df, DataFrame):
-            df1 = df.withColumn(
-                "loyalty_score", col("loyalty_score").cast("Integer")
-            )
-            return df1
 
-    clean_transactions(transactions_df)
-    clean_customers(customers_df)
+def clean_transactions(df: DataFrame) -> DataFrame:
+    if isinstance(df, DataFrame):
+        df1 = df.withColumn("basket_explode", explode(col("basket"))).drop(
+            "basket"
+        )
+        df2 = (
+            df1.select(
+                col("customer_id"),
+                col("date_of_purchase"),
+                col("basket_explode.*"),
+            )
+            .withColumn(
+                "date_of_purchase_formated",
+                col("date_of_purchase").cast("Date"),
+            )
+            .withColumn("price", col("price").cast("Integer"))
+        )
+        return df2
+
+
+def clean_customers(df: DataFrame) -> DataFrame:
+    if isinstance(df, DataFrame):
+        df1 = df.withColumn(
+            "loyalty_score", col("loyalty_score").cast("Integer")
+        )
+        return df1
 
 
 if __name__ == "__main__":

@@ -47,6 +47,12 @@ class SparkClass:
         # get_settings(spark_session)
         return spark_session
 
+    def open_json(self, file_path: str) -> dict:
+        if isinstance(file_path, str) and os.path.exists(file_path):
+            with open(file_path, "r") as file:
+                data = json.load(file)
+            return data
+
     def import_data(
         self,
         spark: SparkSession,
@@ -62,7 +68,6 @@ class SparkClass:
 
         def open_directory(
             spark: SparkSession,
-            get_unique_file_extensions: Callable,
             data_path: str,
             pattern: Optional[str] = None,
         ):
@@ -91,9 +96,7 @@ class SparkClass:
 
         path_type = file_or_directory(data_path)
         return (
-            open_directory(
-                spark, get_unique_file_extensions, data_path, pattern
-            )
+            open_directory(spark, data_path, pattern)
             if path_type == "dir"
             else open_file(
                 SparkClass(self.config).get_file_extension, data_path
@@ -123,16 +126,13 @@ class SparkClass:
 
         def filter_files(file_list: list, pattern: str):
             """If pattern is included then filter files"""
-            return [x for x in file_list if re.search(rf"{pattern}", x)]
+            if isinstance(pattern, str):
+                return [x for x in file_list if re.search(rf"{pattern}", x)]
+            else:
+                return file_list
 
         file_list = recursive_file_list(directory)
-        return (
-            file_list
-            if pattern == None
-            else filter_files(file_list, pattern)
-            if pattern != ""
-            else None
-        )
+        return filter_files(file_list, pattern)
 
     def create_dataframe(
         self, spark: SparkSession, file_list: list, file_type: str
@@ -157,10 +157,16 @@ class SparkClass:
                 )
                 return df
 
-        return (
-            df_from_csv(file_list)
-            if file_type == "csv"
-            else df_from_json(file_list)
-            if file_type == "json"
-            else None
-        )
+        def make_df(file_list: list, file_type: str) -> DataFrame:
+            return (
+                df_from_csv(file_list)
+                if file_type == "csv"
+                else df_from_json(file_list)
+                if file_type == "json"
+                else None
+            )
+
+        return make_df(file_list, file_type)
+
+    def debug_dataframe(self, df: DataFrame, filename: str) -> None:
+        print(filename)
